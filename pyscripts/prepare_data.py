@@ -37,6 +37,9 @@ class DataPreprocessing:
         if not os.path.exists('../data/raw/'): 
             os.mkdir('../data/raw/') 
 
+        if not os.path.exists('../data/tables/'): 
+            os.mkdir('../data/tables/') 
+
     def download_polls_api(self, year1 = 1995, year2 = 2021) -> None: 
         """
         Download voting ids during years year1 to year2. From the ids, all the
@@ -103,9 +106,54 @@ class DataPreprocessing:
                 with open(filepath, 'w') as f: 
                     f.write(page.text)
 
-        print('MESSAGE - download concluded!')
+        print('MESSAGE - The download concluded!')
+
+    def get_deputies(self, l1 = 52, l2 = 56, verify = True) -> None: 
+        """
+        This function gets the information of the deputies from legislature l1
+        to l2. It saves the id, uri, party, state, region, name, and
+        legislature. 
+        - l1 (int): Starting legislature. 
+        - l2 (int): Ending legislature. 
+        - verify (bool): verify if the file already exists. If true, the
+          function does not do anything.  
+        """
+        print('MESSAGE - Starting to download the deputies.')
+
+        if verify: 
+            if os.path.exists('../data/tables/deputies.csv'): 
+                print('MESSAGE - The file already exists.')
+                return
+
+        deputies = pd.DataFrame() 
+        information = ['id', 'uri', 'nome', 'siglaPartido', 'siglaUf', 'idLegislatura']
+
+        for leg in trange(l1, l2+1, desc='Legislature'):
+            while True: 
+                try: 
+                    deputies = deputies.append(camara.lista_deputados(legislatura=leg)[information].reset_index(drop=True))
+                    break
+                except Exception as e:
+                    print(e) 
+                    print("ESSAGE - Trying after 10 seconds...")
+                    time.sleep(10)
+
+        regions = {'RR': 'Norte', 'AP': 'Norte', 'AM': 'Norte', 'PA': 'Norte', 'AC': 'Norte', 
+                   'RO': 'Norte', 'TO': 'Norte', 'MA': 'Nordeste', 'PI': 'Nordeste', 'CE': 'Nordeste', 
+                   'RN': 'Nordeste', 'PB': 'Nordeste', 'PE': 'Nordeste', 'AL': 'Nordeste', 'SE': 'Nordeste', 
+                   'BA': 'Nordeste', 'MT': 'Centro-oeste', 'DF': 'Centro-oeste', 'GO': 'Centro-oeste', 
+                   'MS': 'Centro-oeste', 'MG': 'Sudeste', 'ES': 'Sudeste', 'RJ': 'Sudeste', 
+                   'SP': 'Sudeste', 'PR': 'Sul', 'SC': 'Sul', 'RS': 'Sul'}
+
+        deputies['region'] = deputies.siglaUf.apply(lambda x: regions[x])
+
+        deputies.to_csv('../data/tables/deputies.csv')
+
+        print('MESSAGE - The download is concluded.')
 
 if __name__ == '__main__': 
 
     preprocessing = DataPreprocessing()
     preprocessing.download_necessary_files()
+
+    preprocessing.get_deputies()
