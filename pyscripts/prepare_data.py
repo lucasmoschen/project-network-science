@@ -6,14 +6,14 @@ import requests
 import re
 
 import time
-from tqdm import trange
+from tqdm import trange, tqdm
 
 from DadosAbertosBrasil import camara
 
 class DataPreprocessing: 
     """
     Class devoted to download and prepare the necessary data to the modeling
-    to the polls and deputies from the Brazil National Congress. 
+    to the votes and deputies from the Brazil National Congress. 
     """
 
     def __init__(self) -> None:
@@ -40,7 +40,7 @@ class DataPreprocessing:
         if not os.path.exists('../data/tables/'): 
             os.mkdir('../data/tables/') 
 
-    def download_polls_api(self, year1 = 1995, year2 = 2021) -> None: 
+    def download_votes_api(self, year1 = 1995, year2 = 2021) -> None: 
         """
         Download voting ids during years year1 to year2. From the ids, all the
         necessary information can be obtained with `camara.Votacao(cod=id)`.
@@ -50,7 +50,7 @@ class DataPreprocessing:
         """
         print("WARNING - This function takes to long!")
 
-        polls = pd.DataFrame()
+        votes = pd.DataFrame()
 
         with trange(year1, year2+1, desc='Year') as years: 
             
@@ -72,9 +72,9 @@ class DataPreprocessing:
                         except: 
                             time.sleep(10)
                 
-                    polls = polls.append(vot.reset_index(drop=True))
+                    votes = votes.append(vot.reset_index(drop=True))
             
-        polls.to_csv('../dados/raw/votacoes_api.csv')
+        votes.to_csv('../dados/raw/votacoes_api.csv')
 
 
     def download_necessary_files(self, year1 = 1995, year2 = 2021) -> None: 
@@ -151,9 +151,115 @@ class DataPreprocessing:
 
         print('MESSAGE - The download is concluded.')
 
+    def prepare_votes_table(self, year1 = 2003, year2 = 2021, verify = True) -> None: 
+        """
+        Get the important information from the voting files and generate the voting
+        tables relating to the ids. We gatter all the voting and filter by
+        that which have votes computed. 
+        - year1: MMMM with staring year from 1990 to 2021. 
+        - year2: MMMM with ending year from 1990 to 2021. 
+        """
+
+        if verify: 
+            if os.path.exists('../data/tables/votes_deputies.csv'): 
+                if os.path.exists('../data/tables/votes_info.csv'): 
+                    print('MESSAGE - The file already exists.')
+                    return
+                return
+
+        info_votes = ['data', 'siglaOrgao', 'aprovacao', 'votosSim', 'votosNao', 'votosOutros', 
+                      'ultimaApresentacaoProposicao_idProposicao']
+        
+        votes = pd.DataFrame()
+        for year in range(year1, year2 + 1): 
+            votes = votes.append(pd.read_csv('../data/raw/votacoes-{}.csv'.format(year), 
+                                              sep = ';', 
+                                              index_col=0)[info_votes])
+
+        info_deputies = ['idVotacao', 'voto', 'deputado_id']
+
+        votes_deputies = pd.DataFrame() 
+        for year in range(year1, year2 + 1): 
+            votes_deputies = votes_deputies.append(pd.read_csv('../data/raw/votacoesVotos-{}.csv'.format(year), 
+                                                               sep = ';')[info_deputies])
+        votes_deputies = votes_deputies.reset_index(drop=True)
+
+        votes = votes.loc[votes_deputies.idVotacao.unique()]
+
+        # Separating year, month, and day from date 
+        votes['data'] = pd.to_datetime(votes['data'])
+        votes['year'] = votes['data'].apply(lambda x: x.year)
+        votes['month'] = votes['data'].apply(lambda x: x.month)
+        votes['day'] = votes['data'].apply(lambda x: x.day)
+
+        votes.drop(columns='data').to_csv('../data/tables/votes_info.csv')
+
+        # Fixing nan values 
+        votes_deputies.voto = votes_deputies.voto.fillna('Secreto')
+        
+        votes_deputies.to_csv('../data/tables/votes_deputies.csv', index=False)
+        
+        print("MESSAGE - Voting tables finished!")
+
+    def get_propositions(self) -> None: 
+        """
+        Get the topics and types of the propositions related to the votes. 
+        """
+        print("WARNING - The propositions table is still being developed...")
+
+        propositions = {'id': [], 'siglaTipo': [], 'codTema': [], 'Tema': []}
+        votes = pd.read_csv('../data/tables/votes_info.csv')
+
+        for proposition in tqdm(votes.ultimaApresentacaoProposicao_idProposicao.unique()):
+                
+            error = False
+            while True: 
+                try:   
+                    prop = camara.Proposicao(cod=proposition)
+                    break
+                except KeyError: 
+                    error = True
+                    break
+                except:
+                    time.sleep(5)
+                        
+            if error: 
+                propositions['id'].append(proposition)
+                propositions['siglaTipo'].append(None)
+                propositions['codTema'].append(None)
+                propositions['Tema'].append(None)
+            else:
+                propositions['id'].append(proposition)
+                propositions['siglaTipo'].append(prop.tipo_sigla)
+
+                tema = prop.temas() 
+                if tema.shape[0] > 0: 
+                    propositions['codTema'].append(list(tema.codTema))
+                    propositions['Tema'].append(list(tema.tema))
+                else: 
+                    propositions['codTema'].append(None)
+                    propositions['Tema'].append(None)
+
+        pd.DataFrame(propositions).to_csv("../data/tables/propositions.csv", index=False) 
+
+        print("MESSAGE - Proposition file is done!")
+
 if __name__ == '__main__': 
 
     preprocessing = DataPreprocessing()
     preprocessing.download_necessary_files()
 
     preprocessing.get_deputies()
+
+    preprocessing.prepare_votes_table()
+
+    print("Do you want to download the propositions? It takes 20min - 30min and it is in development.")
+    while True: 
+        ans = input("[y/n]")
+        if ans == 'y': 
+            preprocessing.get_propositions()
+            break
+        elif ans == 'n':
+            break
+        else: 
+            continue
