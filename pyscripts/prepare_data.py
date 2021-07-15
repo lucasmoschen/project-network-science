@@ -160,6 +160,8 @@ class DataPreprocessing:
         - year2: MMMM with ending year from 1990 to 2021. 
         """
 
+        print("MESSAGE - Stating to prepare the voting tables.")
+
         if verify: 
             if os.path.exists('../data/tables/votes_deputies.csv'): 
                 if os.path.exists('../data/tables/votes_info.csv'): 
@@ -244,6 +246,43 @@ class DataPreprocessing:
 
         print("MESSAGE - Proposition file is done!")
 
+    def get_fronts(self, verify=True) -> None: 
+        """
+        This function downloads all the parliamentary fronts and their
+        members. It saves as a csv table in the end. It gets data from the
+        legislature 54. Before that, membership information was unavailable. 
+        """
+
+        print("MESSAGE - Starting to download and prepare the fronts file.")
+
+        if verify: 
+            if os.path.exists('../data/tables/fronts.csv'): 
+                print('MESSAGE - The file already exists.')
+                return
+
+        page = requests.get(self.archive_website+"frentesDeputados/csv/frentesDeputados.csv")
+        with open('../data/raw/fronts.csv', 'w') as f: 
+            f.write(page.text)
+
+        print('MESSAGE - The file was downloaded! Saving...')
+
+        info_needed = ['id', 'titulo', 'deputado_.id', 'deputado_.idLegislatura','deputado_.titulo']
+        fronts = pd.read_csv('../data/raw/fronts.csv', sep=';')[info_needed]
+        
+        fronts['deputado_.id'].fillna(0, inplace=True)
+        fronts['deputado_.id'] = fronts['deputado_.id'].astype(int)  
+
+        fronts['deputado_.titulo'] = fronts['deputado_.titulo'].apply(lambda x: 1*(x[0] == 'C'))
+        
+        fronts = fronts.rename(columns={'id': 'id_front', 
+                                        'deputado_.id': 'id_deputado', 
+                                        'deputado_.idLegislatura': 'legislatura', 
+                                        'deputado_.titulo': 'coordenador'})
+
+        fronts.to_csv('../data/tables/fronts.csv')
+
+        print('MESSAGE - Parliamentary fronts file done!')
+
 if __name__ == '__main__': 
 
     preprocessing = DataPreprocessing()
@@ -252,6 +291,8 @@ if __name__ == '__main__':
     preprocessing.get_deputies()
 
     preprocessing.prepare_votes_table()
+
+    preprocessing.get_fronts()
 
     print("Do you want to download the propositions? It takes 20min - 30min and it is in development.")
     while True: 
