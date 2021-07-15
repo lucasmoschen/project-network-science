@@ -194,6 +194,12 @@ class DataPreprocessing:
         votes['month'] = votes['data'].apply(lambda x: x.month)
         votes['day'] = votes['data'].apply(lambda x: x.day)
 
+        # Adding legislature
+        def legislature_calc(row): 
+            year = (row.year - 2003)
+            return year//4 + 52 - ((row.month == 1)&(year%4==0))
+        votes['legislature'] = votes.apply(legislature_calc, axis=1)
+
         votes.drop(columns='data').to_csv('../data/tables/votes_info.csv')
 
         # Fixing nan values 
@@ -290,7 +296,7 @@ if __name__ == '__main__':
 
     preprocessing.get_deputies()
 
-    preprocessing.prepare_votes_table()
+    preprocessing.prepare_votes_table(verify=False)
 
     preprocessing.get_fronts()
 
