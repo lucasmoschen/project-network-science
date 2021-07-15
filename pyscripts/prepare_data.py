@@ -7,6 +7,7 @@ import re
 
 import time
 from tqdm import trange, tqdm
+import json
 
 from DadosAbertosBrasil import camara
 
@@ -289,6 +290,59 @@ class DataPreprocessing:
 
         print('MESSAGE - Parliamentary fronts file done!')
 
+    def incidence_matrix(self, verify = True) -> None: 
+        """
+        This function creates the incidence matrix, where the rows are the
+        votes and the columns are the deputies. Each legislature is saved in a
+        different file. 
+        """
+
+        print("MESSAGE - Starting to build the incidence matrices.")
+
+        if verify:
+            for legislature in range(52,57): 
+                if not os.path.exists('../data/tables/incidence_matrix_{}.csv'.format(legislature)): 
+                    break
+            else: 
+                print('MESSAGE - The file already exists.')
+                return
+
+        vote_mapping = {"Não": -1, 
+                "Sim": 1, 
+                "Abstenção": 0, 
+                "Secreto": 278, 
+                "Artigo 17": 17, 
+                "Branco": 255, 
+                "Obstrução": 0.1, 
+                "Favorável com restrições": 0.5}
+        with open("../data/tables/vote_mapping.json", 'w') as f: 
+            json.dump(vote_mapping, f)
+
+        votes = pd.read_csv('../data/tables/votes_info.csv')
+        votes_deputies = pd.read_csv('../data/tables/votes_deputies.csv')
+        votes_deputies["voto"] = votes_deputies["voto"].replace(vote_mapping)
+        votes_info = pd.merge(left=votes_deputies, right=votes, left_on='idVotacao', right_on='id').drop(columns='id')
+        
+        del votes, votes_deputies
+
+        for legislature in trange(52,57, position=0, desc='Legislature'): 
+            
+            votes = votes_info[votes_info.legislature==legislature]
+            unique_votes = votes.idVotacao.unique()
+            unique_deputies = votes.deputado_id.unique()
+            
+            incidence_matrix = pd.DataFrame(index = unique_votes, columns = unique_deputies)
+
+            for deputy in tqdm(unique_deputies, position=1,leave=True, desc='Deputies'): 
+
+                filter_dep = votes[votes.deputado_id == deputy]
+                incidence_matrix.loc[filter_dep.idVotacao, deputy] = filter_dep.voto.values
+                
+            incidence_matrix.to_csv("../data/tables/incidence_matrix_{}.csv".format(legislature))
+            
+        print("\n")                
+        print("MESSAGE - The incidence matrices are done!")
+
 if __name__ == '__main__': 
 
     preprocessing = DataPreprocessing()
@@ -296,7 +350,7 @@ if __name__ == '__main__':
 
     preprocessing.get_deputies()
 
-    preprocessing.prepare_votes_table(verify=False)
+    preprocessing.prepare_votes_table()
 
     preprocessing.get_fronts()
 
@@ -310,3 +364,5 @@ if __name__ == '__main__':
             break
         else: 
             continue
+
+    preprocessing.incidence_matrix()
