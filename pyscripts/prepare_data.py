@@ -290,7 +290,7 @@ class DataPreprocessing:
 
         print('MESSAGE - Parliamentary fronts file done!')
 
-    def incidence_matrix(self, verify = True) -> None: 
+    def incidence_matrix(self, verify = True, yearly = False) -> None: 
         """
         This function creates the incidence matrix, where the rows are the
         votes and the columns are the deputies. Each legislature is saved in a
@@ -340,6 +340,24 @@ class DataPreprocessing:
                 
             incidence_matrix.to_csv("../data/tables/incidence_matrix_{}.csv".format(legislature))
             
+            if yearly == True: 
+
+                years = votes.year.unique()
+
+                for y in years: 
+                    votes_yearly = votes[votes.year == y]
+                    unique_votes = votes_yearly.idVotacao.unique()
+                    unique_deputies = votes_yearly.deputado_id.unique()
+            
+                    incidence_matrix = pd.DataFrame(index = unique_votes, columns = unique_deputies)
+
+                    for deputy in unique_deputies: 
+
+                        filter_dep = votes_yearly[votes_yearly.deputado_id == deputy]
+                        incidence_matrix.loc[filter_dep.idVotacao, deputy] = filter_dep.voto.values
+                
+                    incidence_matrix.to_csv("../data/tables/incidence_matrix_{}_year_{}.csv".format(legislature, y))
+            
         print("\n")                
         print("MESSAGE - The incidence matrices are done!")
 
@@ -354,6 +372,8 @@ if __name__ == '__main__':
 
     preprocessing.get_fronts()
 
+    preprocessing.incidence_matrix(verify=True, yearly=True)
+
     print("Do you want to download the propositions? It takes 20min - 30min and it is in development.")
     while True: 
         ans = input("[y/n]")
@@ -364,5 +384,3 @@ if __name__ == '__main__':
             break
         else: 
             continue
-
-    preprocessing.incidence_matrix()
