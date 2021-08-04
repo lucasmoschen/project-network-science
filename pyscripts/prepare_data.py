@@ -177,14 +177,14 @@ class DataPreprocessing:
         for year in range(year1, year2 + 1): 
             votes = votes.append(pd.read_csv('../data/raw/votacoes-{}.csv'.format(year), 
                                               sep = ';', 
-                                              index_col=0)[info_votes])
+                                              index_col=0, encoding='latin-1')[info_votes])
 
         info_deputies = ['idVotacao', 'voto', 'deputado_id']
 
         votes_deputies = pd.DataFrame() 
         for year in range(year1, year2 + 1): 
             votes_deputies = votes_deputies.append(pd.read_csv('../data/raw/votacoesVotos-{}.csv'.format(year), 
-                                                               sep = ';')[info_deputies])
+                                                               sep = ';', encoding='latin-1')[info_deputies])
         votes_deputies = votes_deputies.reset_index(drop=True)
 
         votes = votes.loc[votes_deputies.idVotacao.unique()]
@@ -217,7 +217,7 @@ class DataPreprocessing:
         print("WARNING - The propositions table is still being developed...")
 
         propositions = {'id': [], 'siglaTipo': [], 'codTema': [], 'Tema': []}
-        votes = pd.read_csv('../data/tables/votes_info.csv')
+        votes = pd.read_csv('../data/tables/votes_info.csv', encoding='latin-1')
 
         for proposition in tqdm(votes.ultimaApresentacaoProposicao_idProposicao.unique()):
                 
@@ -274,7 +274,7 @@ class DataPreprocessing:
         print('MESSAGE - The file was downloaded! Saving...')
 
         info_needed = ['id', 'titulo', 'deputado_.id', 'deputado_.idLegislatura','deputado_.titulo']
-        fronts = pd.read_csv('../data/raw/fronts.csv', sep=';')[info_needed]
+        fronts = pd.read_csv('../data/raw/fronts.csv', sep=';', encoding='latin-1')[info_needed]
         
         fronts['deputado_.id'].fillna(0, inplace=True)
         fronts['deputado_.id'] = fronts['deputado_.id'].astype(int)  
@@ -318,8 +318,8 @@ class DataPreprocessing:
         with open("../data/tables/vote_mapping.json", 'w') as f: 
             json.dump(vote_mapping, f)
 
-        votes = pd.read_csv('../data/tables/votes_info.csv')
-        votes_deputies = pd.read_csv('../data/tables/votes_deputies.csv')
+        votes = pd.read_csv('../data/tables/votes_info.csv', encoding='latin-1')
+        votes_deputies = pd.read_csv('../data/tables/votes_deputies.csv', encoding='latin-1')
         votes_deputies["voto"] = votes_deputies["voto"].replace(vote_mapping)
         votes_info = pd.merge(left=votes_deputies, right=votes, left_on='idVotacao', right_on='id').drop(columns='id')
         
