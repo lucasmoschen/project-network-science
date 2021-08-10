@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import pandas as pd
+import networkx as nx
 import numpy as np
 import os 
 
@@ -92,6 +93,12 @@ class GraphConstruction:
         
         return adj
 
+    def build_graph_threshold(self, adjacency_matrix, threshold): 
+
+        adj = 1*(adjacency_matrix > threshold)
+        G = nx.from_pandas_adjacency(df = adj)
+
+        return G
 
 if __name__ == '__main__': 
 
