@@ -34,6 +34,16 @@ class GraphConstruction:
         incidence_matrix = pd.read_csv(file_name, index_col = 0)
         return incidence_matrix
 
+    def import_adjacency_matrix(self, legislature, abstention_decision, obstruction_decision):
+
+        name = "adjacency_matrix_legislature_{}_{}_{}".format(legislature, abstention_decision, obstruction_decision)
+        file_name = '../data/graphs/{}.csv'.format(name) 
+
+        adjacency_matrix = pd.read_csv(file_name, index_col = 0)
+        adjacency_matrix.rename(columns = {i: int(i) for i in adjacency_matrix.columns}, inplace = True)
+
+        return adjacency_matrix
+
     def save_adjacency_matrix(self, adjacency_matrix, name): 
         
         adjacency_matrix.to_csv('../data/graphs/{}.csv'.format(name))
@@ -120,4 +130,3 @@ if __name__ == '__main__':
                                           "adjacency_matrix_legislature_{}_{}_{}".format(legislature, abstention_decision, obstruction_decision))
                                           
     print("INFO - Adjacency matrix saved!")
-    
