@@ -118,13 +118,26 @@ if __name__ == '__main__':
 
     incidence_matrix = graphConstrutor.import_incidence_matrix(legislature)
 
-    abstention_decision = 'partial'
-    obstruction_decision = 'against'
+    # abstention_decision = 'partial'
+    # obstruction_decision = 'against'
+
+    # print("INFO - Building adjacency matrix. It may take a while < 1min.")
+
+    # adjacency_matrix = graphConstrutor.build_adjacency_matrix(incidence_matrix, abstention_decision, 
+    #                                                           obstruction_decision, agreement=False)
+                                                              
+    # graphConstrutor.save_adjacency_matrix(adjacency_matrix, 
+    #                                       "adjacency_matrix_legislature_{}_{}_{}".format(legislature, abstention_decision, obstruction_decision))
+                                          
+    # print("INFO - Adjacency matrix saved!")
+
+    abstention_decision = 'same'
+    obstruction_decision = 'same'
 
     print("INFO - Building adjacency matrix. It may take a while < 1min.")
 
     adjacency_matrix = graphConstrutor.build_adjacency_matrix(incidence_matrix, abstention_decision, 
-                                                              obstruction_decision, agreement=False)
+                                                              obstruction_decision, agreement=True)
                                                               
     graphConstrutor.save_adjacency_matrix(adjacency_matrix, 
                                           "adjacency_matrix_legislature_{}_{}_{}".format(legislature, abstention_decision, obstruction_decision))
