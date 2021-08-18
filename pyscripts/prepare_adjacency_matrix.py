@@ -5,6 +5,8 @@ import networkx as nx
 import numpy as np
 import os 
 
+from tqdm import tqdm, trange
+
 class GraphConstruction: 
     """
     Class with object of build the adjacency matrices and the graphs
@@ -114,32 +116,43 @@ if __name__ == '__main__':
 
     graphConstrutor = GraphConstruction()
 
-    legislature = 56
+    parameters = [('partial-unknown', 'against', False), 
+                    ('same', 'same', True)
+                    ]
 
-    incidence_matrix = graphConstrutor.import_incidence_matrix(legislature)
+    print("INFO - You can change the parameters of the graph constructor in the script file!")
+    print('INFO - These were used by the project. ')
+    
+    print("QUESTION - Do you want to verify if the file were already generated?")
+    while True: 
+        ans = input("[y/n]")
+        if ans == 'y': 
+            verify = True
+            break
+        elif ans == 'n':
+            verify = False
+        else: 
+            continue
 
-    # abstention_decision = 'partial'
-    # obstruction_decision = 'against'
+    print("INFO - This procedure can take about 30 minutes!")
 
-    # print("INFO - Building adjacency matrix. It may take a while < 1min.")
+    for legislature in trange(52,57,desc='Legislature'): 
 
-    # adjacency_matrix = graphConstrutor.build_adjacency_matrix(incidence_matrix, abstention_decision, 
-    #                                                           obstruction_decision, agreement=False)
-                                                              
-    # graphConstrutor.save_adjacency_matrix(adjacency_matrix, 
-    #                                       "adjacency_matrix_legislature_{}_{}_{}".format(legislature, abstention_decision, obstruction_decision))
-                                          
-    # print("INFO - Adjacency matrix saved!")
+        incidence_matrix = graphConstrutor.import_incidence_matrix(legislature)
+    
+        for par in parameters: 
 
-    abstention_decision = 'same'
-    obstruction_decision = 'same'
+            if verify: 
+                if os.path.exists("adjacency_matrix_legislature_{}_{}_{}".format(legislature, par[0], par[1])): 
+                    continue
 
-    print("INFO - Building adjacency matrix. It may take a while < 1min.")
-
-    adjacency_matrix = graphConstrutor.build_adjacency_matrix(incidence_matrix, abstention_decision, 
-                                                              obstruction_decision, agreement=True)
-                                                              
-    graphConstrutor.save_adjacency_matrix(adjacency_matrix, 
-                                          "adjacency_matrix_legislature_{}_{}_{}".format(legislature, abstention_decision, obstruction_decision))
-                                          
-    print("INFO - Adjacency matrix saved!")
+            adjacency_matrix = graphConstrutor.build_adjacency_matrix(incidence_matrix, 
+                                                                    abstention_decision = par[0],
+                                                                    obstruction_decision = par[1],
+                                                                    agreement = par[2])
+                                                                
+            graphConstrutor.save_adjacency_matrix(adjacency_matrix, 
+                                                "adjacency_matrix_legislature_{}_{}_{}".format(legislature, par[0], par[1]))
+                                                
+    print("INFO - The adjacency matrices were generated!")
+                                        
