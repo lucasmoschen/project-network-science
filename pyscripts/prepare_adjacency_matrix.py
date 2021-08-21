@@ -5,7 +5,7 @@ import networkx as nx
 import numpy as np
 import os 
 
-from tqdm import tqdm, trange
+from tqdm import trange
 
 class GraphConstruction: 
     """
@@ -105,12 +105,35 @@ class GraphConstruction:
         
         return adj
 
-    def build_graph_threshold(self, adjacency_matrix, threshold): 
+    def build_graph_threshold(self, adjacency_matrix, threshold, legislature = None): 
 
         adj = 1*(adjacency_matrix > threshold)
         G = nx.from_pandas_adjacency(df = adj)
 
+        if legislature is not None: 
+            G = self.deputies_info(G, legislature)
+
         return G
+
+    def deputies_info(self, graph, legislature): 
+
+        deputies = pd.read_csv('../data/tables/deputies.csv', index_col = 0)
+
+        parties = dict(zip(deputies[deputies.idLegislatura==legislature].id.astype(int), 
+                           deputies[deputies.idLegislatura==legislature].siglaPartido))
+        uf = dict(zip(deputies[deputies.idLegislatura==legislature].id.astype(int), 
+                      deputies[deputies.idLegislatura==legislature].siglaUf))
+        region = dict(zip(deputies[deputies.idLegislatura==legislature].id.astype(int), 
+                          deputies[deputies.idLegislatura==legislature].region))
+        names = dict(zip(deputies[deputies.idLegislatura==legislature].id.astype(int), 
+                         deputies[deputies.idLegislatura==legislature].nome))
+
+        nx.set_node_attributes(graph, parties, 'party')
+        nx.set_node_attributes(graph, uf, 'uf')
+        nx.set_node_attributes(graph, region, 'region')
+        nx.set_node_attributes(graph, names, 'names')
+
+        return graph
 
 if __name__ == '__main__': 
 
@@ -155,4 +178,3 @@ if __name__ == '__main__':
                                                 "adjacency_matrix_legislature_{}_{}_{}".format(legislature, par[0], par[1]))
                                                 
     print("INFO - The adjacency matrices were generated!")
-                                        
