@@ -154,6 +154,7 @@ if __name__ == '__main__':
             break
         elif ans == 'n':
             verify = False
+            break
         else: 
             continue
 
